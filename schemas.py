@@ -20,7 +20,7 @@ class BookResponse(BaseModel):
     available_copies:int
     shelf_location:str
 
-    class config:
+    class Config:
         from_arrributes=True
 
 
@@ -43,7 +43,7 @@ class MembersResponse(BaseModel):
     membership_date:date
     status:str
 
-    class config:
+    class Config:
         from_attributes=True
 
 
@@ -66,5 +66,5 @@ class TransactionsResponse(BaseModel):
     due_date:date
     return_date:date
     status:str
-    class config:
+    class Config:
         from_attributes=True
