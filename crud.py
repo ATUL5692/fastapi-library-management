@@ -26,7 +26,7 @@ def get_book_by_id(db: Session, book_id: int):
     return db.query(models.Book).filter(models.Book == book_id).first()
 
 def delete_book(db: Session, book_id: int):
-    book = db.query(models.Book).filter(models.Book == Book_id).first()
+    book = db.query(models.Book).filter(models.Book == book_id).first()
 
     if book:
         db.delete(book)
