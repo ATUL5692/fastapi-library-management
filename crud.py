@@ -34,4 +34,16 @@ def delete_book(db: Session, book_id: int):
     
     return book
 
-def update_book()
+def update_book(db: Session, book_id: int, book: schemas.BookCreate):
+
+    existing_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+
+    if existing_book:
+        existing_book.title = book.title
+        existing_book.author = book.author
+        existing_book.category = book.category
+
+        db.commit()
+        db.refresh(existing_book)
+
+    return existing_book
