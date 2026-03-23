@@ -15,7 +15,8 @@ def create_book(db: Session, book: schemas.BookCreate):
         isbn=book.isbn,
         category=book.category,
         total_copies=book.total_copies,
-        available_copies=book.total_copies
+        available_copies=book.total_copies,
+        shelf_location=book.shelf_location
     )
 
     db.add(new_book)
