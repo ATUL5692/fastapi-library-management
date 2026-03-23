@@ -1,70 +1,75 @@
 from pydantic import BaseModel
 from datetime import date
 
-# Validation for Books
+
+# ------------------ BOOK ------------------
+
 class BookCreate(BaseModel):
-    title:str
-    author:str
-    isbn:int
-    category:str
-    total_copies:int
-    available_copies:int
-    shelf_location:str
+    title: str
+    author: str
+    isbn: str
+    category: str
+    total_copies: int
+    shelf_location: str
+
+
 class BookResponse(BaseModel):
-    id:int
-    title:str
-    author:str
-    isbn:int
-    category:str
-    total_copies:int
-    available_copies:int
-    shelf_location:str
+    id: int
+    title: str
+    author: str
+    isbn: str
+    category: str
+    total_copies: int
+    available_copies: int
+    shelf_location: str
 
     class Config:
-        from_arrributes=True
+        from_attributes = True
 
 
+# ------------------ MEMBER ------------------
+
+class MemberCreate(BaseModel):
+    name: str
+    email: str
+    phone: str
 
 
-
-# Validation for Members
-class MembersCreate(BaseModel):
-    name:str
-    email:str
-    phone:int
-    membership_date:date
-    status:str
-
-class MembersResponse(BaseModel):
-    member_id:int
-    name:str
-    email:str
-    phone:int
-    membership_date:date
-    status:str
+class MemberResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    phone: str
+    membership_date: date
+    status: str
 
     class Config:
-        from_attributes=True
+        from_attributes = True
 
 
+# ------------------ TRANSACTION ------------------
+
+class TransactionCreate(BaseModel):
+    book_id: int
+    member_id: int
 
 
-# Validation for Transactions data
+class TransactionResponse(BaseModel):
+    id: int
+    book_id: int
+    member_id: int
+    issue_date: date
+    due_date: date
+    return_date: date | None
+    fine: int
+    status: str
 
-class TransactionsCreate(BaseModel):
-    member_id:int
-    issue_date:date
-    due_date:date
-    return_date:date
-    status:str
-
-class TransactionsResponse(BaseModel):
-    transaction_id:int
-    book_id:int
-    member_id:int
-    issue_date:date
-    due_date:date
-    return_date:date
-    status:str
     class Config:
-        from_attributes=True
+        from_attributes = True
+
+
+# ------------------ BORROW ------------------
+
+class BorrowBook(BaseModel):
+    book_id: int
+    member_id: int

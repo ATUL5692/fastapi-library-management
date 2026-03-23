@@ -1,14 +1,16 @@
 from fastapi import FastAPI
 from database import engine
-from models import Base
+import models
 
+from routers import books, members, transactions, analytics
 
 app = FastAPI()
 
-Base.metadata.create_all(bind=engine)
+# create tables
+models.Base.metadata.create_all(bind=engine)
 
-@app.get("/")
-def read_root():
-    return {"Message":"Library Management System API is running successfully."}
-
-
+# include routers
+app.include_router(books.router)
+app.include_router(members.router)
+app.include_router(transactions.router)
+app.include_router(analytics.router)
