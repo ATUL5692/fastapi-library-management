@@ -1,8 +1,9 @@
 from database import Base
 from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy.orm import relationship
 
 
-# ------------------ BOOK ------------------
+#  BOOK 
 
 class Book(Base):
     __tablename__ = "books"
@@ -16,21 +17,27 @@ class Book(Base):
     available_copies = Column(Integer, default=0, nullable=False)
     shelf_location = Column(String(200), nullable=False)
 
+    # relationship
+    transactions = relationship("Transaction", back_populates="book")
 
-# ------------------ MEMBER ------------------
+
+#  MEMBER 
 
 class Member(Base):
-    __tablename__ = "members"
+    __tablename__ = "members"   # ✅ FIXED (plural)
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)   # ✅ FIXED (id, not member_id)
+    name = Column(String(50), nullable=False)
+    email = Column(String(50), unique=True, nullable=False)
     phone = Column(String(15), unique=True, nullable=False)
-    membership_date = Column(Date, nullable=False)
+    membership_date = Column(Date, nullable=True)
     status = Column(String(20), default="active")
 
+    # relationship
+    transactions = relationship("Transaction", back_populates="member")
 
-# ------------------ TRANSACTION ------------------
+
+#  TRANSACTION 
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -38,7 +45,7 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
+    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)  # ✅ FIXED
 
     issue_date = Column(Date, nullable=False)
     due_date = Column(Date, nullable=False)
@@ -46,3 +53,7 @@ class Transaction(Base):
 
     fine = Column(Integer, default=0)
     status = Column(String(20), default="issued")
+
+    # relationships
+    book = relationship("Book", back_populates="transactions")
+    member = relationship("Member", back_populates="transactions")

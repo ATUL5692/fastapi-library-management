@@ -6,7 +6,8 @@ import models
 import schemas
 
 
-# ------------------ BOOK CRUD ------------------
+
+# BOOK CRUD
 
 def create_book(db: Session, book: schemas.BookCreate):
     new_book = models.Book(
@@ -63,13 +64,49 @@ def update_book(db: Session, book_id: int, book: schemas.BookCreate):
     return existing_book
 
 
-# ------------------ TRANSACTIONS ------------------
+
+# MEMBER CRUD
+
+def create_member(db: Session, member: schemas.MemberCreate):
+    new_member = models.Member(
+        name=member.name,
+        email=member.email,
+        phone=member.phone
+    )
+
+    db.add(new_member)
+    db.commit()
+    db.refresh(new_member)
+
+    return new_member
+
+
+def get_members(db: Session):
+    return db.query(models.Member).all()
+
+
+def get_member(db: Session, member_id: int):
+    return db.query(models.Member).filter(models.Member.id == member_id).first()
+
+
+def delete_member(db: Session, member_id: int):
+    member = db.query(models.Member).filter(models.Member.id == member_id).first()
+    if not member:
+        return None
+
+    db.delete(member)
+    db.commit()
+
+    return member
+
+
+
+# TRANSACTIONS
 
 def borrow_book(db: Session, data: schemas.BorrowBook):
 
     book = db.query(models.Book).filter(models.Book.id == data.book_id).first()
     member = db.query(models.Member).filter(models.Member.id == data.member_id).first()
-
     if not book or not member:
         return None
 
@@ -82,7 +119,7 @@ def borrow_book(db: Session, data: schemas.BorrowBook):
         member_id=data.member_id,
         book_id=data.book_id,
         issue_date=date.today(),
-        due_date=date.today()  # can extend later
+        due_date=date.today()
     )
 
     db.add(transaction)
@@ -105,11 +142,9 @@ def return_book(db: Session, book_id: int, member_id: int):
 
     transaction.return_date = date.today()
 
-    # fine calculation
     delay = (transaction.return_date - transaction.due_date).days
     transaction.fine = delay * 10 if delay > 0 else 0
 
-    # update stock
     book = db.query(models.Book).filter(models.Book.id == book_id).first()
     book.available_copies += 1
 
@@ -119,7 +154,8 @@ def return_book(db: Session, book_id: int, member_id: int):
     return transaction
 
 
-# ------------------ ANALYTICS ------------------
+
+# ANALYTICS
 
 def most_borrowed_books(db: Session):
     return db.query(

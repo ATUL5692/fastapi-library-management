@@ -2,7 +2,8 @@ from pydantic import BaseModel
 from datetime import date
 
 
-# ------------------ BOOK ------------------
+
+# BOOK
 
 class BookCreate(BaseModel):
     title: str
@@ -27,8 +28,8 @@ class BookResponse(BaseModel):
         from_attributes = True
 
 
-# ------------------ MEMBER ------------------
 
+# MEMBER
 class MemberCreate(BaseModel):
     name: str
     email: str
@@ -36,39 +37,40 @@ class MemberCreate(BaseModel):
 
 
 class MemberResponse(BaseModel):
-    id: int
+    id: int 
     name: str
     email: str
     phone: str
-    membership_date: date
-    status: str
+    membership_date: date | None
+    status: str | None
 
     class Config:
         from_attributes = True
 
 
-# ------------------ TRANSACTION ------------------
 
+# TRANSACTION
 class TransactionCreate(BaseModel):
     book_id: int
     member_id: int
 
 
 class TransactionResponse(BaseModel):
-    id: int
+    id: int   # ✅ FIXED (not transaction_id)
     book_id: int
     member_id: int
     issue_date: date
     due_date: date
     return_date: date | None
-    fine: int
-    status: str
+    fine: int | None
+    status: str | None
 
     class Config:
         from_attributes = True
 
 
-# ------------------ BORROW ------------------
+
+# BORROW
 
 class BorrowBook(BaseModel):
     book_id: int
