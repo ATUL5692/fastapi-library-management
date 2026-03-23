@@ -56,7 +56,7 @@ class TransactionCreate(BaseModel):
 
 
 class TransactionResponse(BaseModel):
-    id: int   # ✅ FIXED (not transaction_id)
+    id: int   
     book_id: int
     member_id: int
     issue_date: date

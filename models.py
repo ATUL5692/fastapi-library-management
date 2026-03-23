@@ -24,9 +24,9 @@ class Book(Base):
 #  MEMBER 
 
 class Member(Base):
-    __tablename__ = "members"   # ✅ FIXED (plural)
+    __tablename__ = "members"  
 
-    id = Column(Integer, primary_key=True, index=True)   # ✅ FIXED (id, not member_id)
+    id = Column(Integer, primary_key=True, index=True)  
     name = Column(String(50), nullable=False)
     email = Column(String(50), unique=True, nullable=False)
     phone = Column(String(15), unique=True, nullable=False)
@@ -45,7 +45,7 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)  # ✅ FIXED
+    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)  
 
     issue_date = Column(Date, nullable=False)
     due_date = Column(Date, nullable=False)
