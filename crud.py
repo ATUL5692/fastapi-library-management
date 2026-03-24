@@ -71,7 +71,8 @@ def create_member(db: Session, member: schemas.MemberCreate):
     new_member = models.Member(
         name=member.name,
         email=member.email,
-        phone=member.phone
+        phone=member.phone,
+        membership_date=date.today()
     )
 
     db.add(new_member)
@@ -158,11 +159,18 @@ def return_book(db: Session, book_id: int, member_id: int):
 # ANALYTICS
 
 def most_borrowed_books(db: Session):
-    return db.query(
+    results = db.query(
         models.Transaction.book_id,
         func.count(models.Transaction.id).label("count")
     ).group_by(models.Transaction.book_id).all()
 
+    return [
+        {
+            "book_id": r.book_id,
+            "count": r.count
+        }
+        for r in results
+    ]
 
 def issued_books(db: Session):
     return db.query(models.Transaction).filter(

@@ -9,7 +9,6 @@ from database import get_db
 router = APIRouter()
 
 
-# MOST BORROWED BOOKS 
 @router.get("/most-borrowed")
 def most_borrowed_books(db: Session = Depends(get_db)):
 
@@ -20,7 +19,13 @@ def most_borrowed_books(db: Session = Depends(get_db)):
      .order_by(func.count(models.Transaction.id).desc())\
      .all()
 
-    return result
+    return [
+        {
+            "book_id": r.book_id,
+            "borrow_count": r.borrow_count
+        }
+        for r in result
+    ]
 
 
 #CURRENTLY ISSUED BOOKS

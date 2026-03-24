@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import date
-
+from pydantic import BaseModel, EmailStr, field_validator
+import re
 
 
 # BOOK
@@ -32,8 +33,15 @@ class BookResponse(BaseModel):
 # MEMBER
 class MemberCreate(BaseModel):
     name: str
-    email: str
+    email: EmailStr
     phone: str
+
+    @field_validator("phone")
+    def validate_phone(cls, value):
+        pattern = r"^\+\d{1,3}\d{10}$"
+        if not re.match(pattern, value):
+            raise ValueError("Phone no. must be like '+917382936472'")
+        return value
 
 
 class MemberResponse(BaseModel):
