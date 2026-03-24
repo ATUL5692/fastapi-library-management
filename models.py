@@ -1,3 +1,5 @@
+# This file is defining DB
+
 from database import Base
 from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
@@ -23,18 +25,17 @@ class Book(Base):
 
 #  MEMBER 
 
-class Member(Base):
-    __tablename__ = "members"  
+class User(Base):
+    __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)  
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50), nullable=False)
     email = Column(String(50), unique=True, nullable=False)
     phone = Column(String(15), unique=True, nullable=False)
-    membership_date = Column(Date, nullable=True)
-    status = Column(String(20), default="active")
+    password = Column(String(255), nullable=False) 
 
     # relationship
-    transactions = relationship("Transaction", back_populates="member")
+    transactions = relationship("Transaction", back_populates="user")
 
 
 #  TRANSACTION 
@@ -45,7 +46,7 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)  
+    member_id = Column(Integer, ForeignKey("users.id"), nullable=False)  
 
     issue_date = Column(Date, nullable=False)
     due_date = Column(Date, nullable=False)
@@ -56,4 +57,4 @@ class Transaction(Base):
 
     # relationships
     book = relationship("Book", back_populates="transactions")
-    member = relationship("Member", back_populates="transactions")
+    user = relationship("User", back_populates="transactions")

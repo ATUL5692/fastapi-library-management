@@ -1,9 +1,11 @@
+# This file helps to talk to DB & Implementing Logic.
+
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import date
-
 import models
 import schemas
+from security import hash_password
 
 
 
@@ -67,38 +69,42 @@ def update_book(db: Session, book_id: int, book: schemas.BookCreate):
 
 # MEMBER CRUD
 
-def create_member(db: Session, member: schemas.MemberCreate):
-    new_member = models.Member(
-        name=member.name,
-        email=member.email,
-        phone=member.phone,
-        membership_date=date.today()
+def create_user(db: Session, user: schemas.UserCreate):
+    hashed_pwd = hash_password(user.password)
+
+    new_user = models.User(
+        name=user.name,
+        email=user.email,
+        phone=user.phone,
+        password=hash_password(user.password),
     )
 
-    db.add(new_member)
+    db.add(new_user)
     db.commit()
-    db.refresh(new_member)
+    db.refresh(new_user)
 
-    return new_member
-
-
-def get_members(db: Session):
-    return db.query(models.Member).all()
+    return new_user
 
 
-def get_member(db: Session, member_id: int):
-    return db.query(models.Member).filter(models.Member.id == member_id).first()
+def get_users(db: Session):
+    return db.query(models.User).all()
 
 
-def delete_member(db: Session, member_id: int):
-    member = db.query(models.Member).filter(models.Member.id == member_id).first()
-    if not member:
+def get_user(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
+
+def delete_user(db: Session, user_id: int):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
         return None
 
-    db.delete(member)
+    db.delete(user)
     db.commit()
 
-    return member
+    return user
 
 
 
@@ -107,8 +113,8 @@ def delete_member(db: Session, member_id: int):
 def borrow_book(db: Session, data: schemas.BorrowBook):
 
     book = db.query(models.Book).filter(models.Book.id == data.book_id).first()
-    member = db.query(models.Member).filter(models.Member.id == data.member_id).first()
-    if not book or not member:
+    user = db.query(models.User).filter(models.User.id == data.user_id).first()
+    if not book or not user:
         return None
 
     if book.available_copies <= 0:
@@ -117,7 +123,7 @@ def borrow_book(db: Session, data: schemas.BorrowBook):
     book.available_copies -= 1
 
     transaction = models.Transaction(
-        member_id=data.member_id,
+        user_id=data.user_id,
         book_id=data.book_id,
         issue_date=date.today(),
         due_date=date.today()
@@ -130,11 +136,11 @@ def borrow_book(db: Session, data: schemas.BorrowBook):
     return transaction
 
 
-def return_book(db: Session, book_id: int, member_id: int):
+def return_book(db: Session, book_id: int, user_id: int):
 
     transaction = db.query(models.Transaction).filter(
         models.Transaction.book_id == book_id,
-        models.Transaction.member_id == member_id,
+        models.Transaction.user_id == user_id,
         models.Transaction.return_date == None
     ).first()
 

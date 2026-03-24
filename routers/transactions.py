@@ -19,10 +19,10 @@ def borrow_book(data: schemas.BorrowBook, db: Session = Depends(get_db)):
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # Check if member exists
-    member = db.query(models.Member).filter(models.Member.id == data.member_id).first()
-    if not member:
-        raise HTTPException(status_code=404, detail="Member not found")
+    # Check if user exists
+    user = db.query(models.User).filter(models.User.id == data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
     # Check availability
     if book.available_copies <= 0:
@@ -57,7 +57,7 @@ def return_book(data: schemas.BorrowBook, db: Session = Depends(get_db)):
     # Find active transaction
     transaction = db.query(models.Transaction).filter(
         models.Transaction.book_id == data.book_id,
-        models.Transaction.member_id == data.member_id,
+        models.Transaction.user_id == data.user_id,
         models.Transaction.return_date == None
     ).first()
 

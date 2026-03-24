@@ -1,6 +1,7 @@
-from pydantic import BaseModel
-from datetime import date
+# Purpose: Data validation + response shaping
+
 from pydantic import BaseModel, EmailStr, field_validator
+from datetime import date
 import re
 
 
@@ -29,28 +30,39 @@ class BookResponse(BaseModel):
         from_attributes = True
 
 
+# USER (AUTH + PROFILE)
 
-# MEMBER
-class MemberCreate(BaseModel):
+class UserCreate(BaseModel):
     name: str
     email: EmailStr
     phone: str
+    password: str
 
     @field_validator("phone")
     def validate_phone(cls, value):
         pattern = r"^\+\d{1,3}\d{10}$"
         if not re.match(pattern, value):
-            raise ValueError("Phone no. must be like '+917382936472'")
+            raise ValueError("Phone must be like '+917382936472'")
+        return value
+
+    @field_validator("password")
+    def validate_password(cls, value):
+        if len(value) < 6:
+            raise ValueError("Password must be at least 6 characters")
         return value
 
 
-class MemberResponse(BaseModel):
-    id: int 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
     name: str
     email: str
     phone: str
-    membership_date: date | None
-    status: str | None
+
 
     class Config:
         from_attributes = True
@@ -58,15 +70,17 @@ class MemberResponse(BaseModel):
 
 
 # TRANSACTION
+
+
 class TransactionCreate(BaseModel):
     book_id: int
-    member_id: int
+    user_id: int
 
 
 class TransactionResponse(BaseModel):
-    id: int   
+    id: int
     book_id: int
-    member_id: int
+    user_id: int
     issue_date: date
     due_date: date
     return_date: date | None
@@ -78,8 +92,7 @@ class TransactionResponse(BaseModel):
 
 
 
-# BORROW
-
+# BORROW 
 class BorrowBook(BaseModel):
     book_id: int
-    member_id: int
+    user_id: int

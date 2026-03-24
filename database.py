@@ -1,3 +1,5 @@
+# This file is for connecting project to DB
+
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import create_engine
 
