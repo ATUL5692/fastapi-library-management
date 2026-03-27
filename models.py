@@ -6,7 +6,6 @@ from sqlalchemy.orm import relationship
 
 
 #  BOOK 
-
 class Book(Base):
     __tablename__ = "books"
 
@@ -34,6 +33,8 @@ class User(Base):
     phone = Column(String(15), unique=True, nullable=False)
     password = Column(String(255), nullable=False) 
 
+    role = Column(String(20), default="user")
+
     # relationship
     transactions = relationship("Transaction", back_populates="user")
 
@@ -46,7 +47,7 @@ class Transaction(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     book_id = Column(Integer, ForeignKey("books.id"), nullable=False)
-    member_id = Column(Integer, ForeignKey("users.id"), nullable=False)  
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  
 
     issue_date = Column(Date, nullable=False)
     due_date = Column(Date, nullable=False)

@@ -70,13 +70,23 @@ def update_book(db: Session, book_id: int, book: schemas.BookCreate):
 # MEMBER CRUD
 
 def create_user(db: Session, user: schemas.UserCreate):
+
+    user_count = db.query(models.User).count()
+
+    # First 2 users admin
+    if user_count < 2:
+        role = "admin"
+    else:
+        role = "user"
+
     hashed_pwd = hash_password(user.password)
 
     new_user = models.User(
         name=user.name,
         email=user.email,
         phone=user.phone,
-        password=hash_password(user.password),
+        password=hashed_pwd,
+        role=role
     )
 
     db.add(new_user)

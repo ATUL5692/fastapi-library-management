@@ -1,107 +1,144 @@
+# This file is for book transactions part.
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
-
-import crud
+from typing import List
 import schemas
 import models
 from database import get_db
+from security import get_current_user, admin_only
 
 router = APIRouter()
 
 
-# BORROW BOOK
-@router.post("/borrow")
-def borrow_book(data: schemas.BorrowBook, db: Session = Depends(get_db)):
+# BORROW BOOK (USER)
 
-    # Check if book exists
+@router.post("/borrow")
+def borrow_book(
+    data: schemas.BorrowBook,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user["user_id"]
+
+    # Check book exists
     book = db.query(models.Book).filter(models.Book.id == data.book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # Check if user exists
-    user = db.query(models.User).filter(models.User.id == data.user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    # Check already borrowed
+    existing = db.query(models.Transaction).filter(
+        models.Transaction.book_id == data.book_id,
+        models.Transaction.user_id == user_id,
+        models.Transaction.return_date == None
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Book already borrowed by user")
 
     # Check availability
     if book.available_copies <= 0:
         raise HTTPException(status_code=400, detail="Book not available")
 
-    # Reduce stock
-    book.available_copies -= 1
+    try:
+        # Reduce stock
+        book.available_copies -= 1
 
-    # Create transaction
-    transaction = models.Transaction(
-        book_id=data.book_id,
-        member_id=data.member_id,
-        issue_date=date.today(),
-        due_date=date.today() + timedelta(days=7),
-        status="issued"
-    )
+        # Create transaction
+        transaction = models.Transaction(
+            book_id=data.book_id,
+            user_id=user_id,
+            issue_date=date.today(),
+            due_date=date.today() + timedelta(days=7),
+            status="issued"
+        )
 
-    db.add(transaction)
-    db.commit()
-    db.refresh(transaction)
+        db.add(transaction)
+        db.commit()
+        db.refresh(transaction)
 
-    return {
-        "message": "Book borrowed successfully",
-        "transaction_id": transaction.id
-    }
+        return {
+            "message": "Book borrowed successfully",
+            "transaction_id": transaction.id
+        }
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Borrow failed")
 
 
-#  RETURN BOOK 
+
+# RETURN BOOK (USER)
+
 @router.post("/return")
-def return_book(data: schemas.BorrowBook, db: Session = Depends(get_db)):
+def return_book(
+    data: schemas.BorrowBook,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user["user_id"]
 
-    # Find active transaction
     transaction = db.query(models.Transaction).filter(
         models.Transaction.book_id == data.book_id,
-        models.Transaction.user_id == data.user_id,
+        models.Transaction.user_id == user_id,
         models.Transaction.return_date == None
     ).first()
 
     if not transaction:
         raise HTTPException(status_code=404, detail="No active borrow record found")
 
-    # Set return date
-    transaction.return_date = date.today()
+    try:
+        # Set return date
+        transaction.return_date = date.today()
 
-    # Calculate fine
-    delay = (transaction.return_date - transaction.due_date).days
-    fine = delay * 10 if delay > 0 else 0
-    transaction.fine = fine
-    transaction.status = "returned"
+        # Fine calculation
+        delay = (transaction.return_date - transaction.due_date).days
+        fine = delay * 10 if delay > 0 else 0
 
-    # Increase stock
-    book = db.query(models.Book).filter(models.Book.id == data.book_id).first()
-    book.available_copies += 1
+        transaction.fine = fine
+        transaction.status = "returned"
 
-    db.commit()
-    db.refresh(transaction)
+        # Increase stock (use relation)
+        book = transaction.book
+        book.available_copies += 1
 
-    return {
-        "message": "Book returned successfully",
-        "fine": fine
-    }
+        db.commit()
+        db.refresh(transaction)
+
+        return {
+            "message": "Book returned successfully",
+            "fine": fine
+        }
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Return failed")
 
 
-#  CURRENTLY ISSUED BOOKS 
-@router.get("/issued")
-def get_issued_books(db: Session = Depends(get_db)):
-    transactions = db.query(models.Transaction).filter(
+
+# ISSUED BOOKS (ADMIN ONLY)
+
+@router.get("/issued", response_model=List[schemas.TransactionResponse])
+def get_issued_books(
+    db: Session = Depends(get_db),
+    user: dict = Depends(admin_only)
+):
+    return db.query(models.Transaction).filter(
         models.Transaction.return_date == None
     ).all()
 
-    return transactions
 
 
-# OVERDUE BOOKS 
-@router.get("/overdue")
-def get_overdue_books(db: Session = Depends(get_db)):
-    transactions = db.query(models.Transaction).filter(
+
+# OVERDUE BOOKS (ADMIN ONLY)
+
+@router.get("/overdue", response_model=List[schemas.TransactionResponse])
+def get_overdue_books(
+    db: Session = Depends(get_db),
+    user: dict = Depends(admin_only)
+):
+    return db.query(models.Transaction).filter(
         models.Transaction.return_date == None,
         models.Transaction.due_date < date.today()
     ).all()
-
-    return transactions

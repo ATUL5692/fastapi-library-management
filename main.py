@@ -3,13 +3,6 @@ from database import engine
 import models
 from routers import books, transactions, analytics, users, auth
 
-
-
-
-
-
-
-
 app = FastAPI()
 
 models.Base.metadata.create_all(bind=engine)

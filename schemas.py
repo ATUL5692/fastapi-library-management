@@ -5,8 +5,15 @@ from datetime import date
 import re
 
 
-# BOOK
 
+# AUTH
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+
+# BOOK
 class BookCreate(BaseModel):
     title: str
     author: str
@@ -30,8 +37,8 @@ class BookResponse(BaseModel):
         from_attributes = True
 
 
-# USER (AUTH + PROFILE)
 
+# USER
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
@@ -52,10 +59,6 @@ class UserCreate(BaseModel):
         return value
 
 
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
 
 class UserResponse(BaseModel):
     id: int
@@ -69,13 +72,7 @@ class UserResponse(BaseModel):
 
 
 
-# TRANSACTION
-
-
-class TransactionCreate(BaseModel):
-    book_id: int
-    user_id: int
-
+# TRANSACTION (RESPONSE ONLY)
 
 class TransactionResponse(BaseModel):
     id: int
@@ -92,7 +89,6 @@ class TransactionResponse(BaseModel):
 
 
 
-# BORROW 
+# BORROW / RETURN INPUT
 class BorrowBook(BaseModel):
     book_id: int
-    user_id: int
