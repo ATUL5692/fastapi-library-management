@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from datetime import date, timedelta
 from typing import List
 from fastapi.responses import RedirectResponse
+from urllib.parse import quote
 import logging
 
 import schemas
@@ -56,21 +57,22 @@ def issue_book(
         db.commit()
         db.refresh(transaction)
 
-        logging.info(f"User {user_id} borrowed book {data.book_id}")
+        logging.info(f"User {user_id} issued book {data.book_id}")
 
         return {"message": f"Access granted for {BORROW_DAYS} days"}
 
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Already borrowed")
+        raise HTTPException(status_code=400, detail="Already issued")
 
-    except Exception:
+    except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Borrow failed")
+        logging.error(str(e))
+        raise HTTPException(status_code=500, detail="Issue failed")
 
 
 # =========================
-# READ BOOK (FIXED 🔥)
+# READ BOOK (PRODUCTION SAFE)
 # =========================
 @router.get("/read/{book_id}")
 def read_book(
@@ -80,7 +82,7 @@ def read_book(
 ):
     user_id = current_user.id
 
-    # expire old transactions
+    # expire old access
     expire_transactions(db)
     db.commit()
 
@@ -103,8 +105,10 @@ def read_book(
     if not book or not book.pdf_url:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # 🔥 convert to Google Viewer
-    viewer_url = f"https://docs.google.com/gview?url={book.pdf_url}&embedded=true"
+    # ✅ encode URL properly (VERY IMPORTANT)
+    encoded_url = quote(book.pdf_url, safe="")
+
+    viewer_url = f"https://docs.google.com/gview?url={encoded_url}&embedded=true"
 
     return RedirectResponse(viewer_url)
 

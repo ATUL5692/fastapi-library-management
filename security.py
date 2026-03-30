@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+import os
 
 from database import get_db
 import models
@@ -24,9 +25,9 @@ def verify_password(plain_password: str, hashed_password: str):
 
 
 # =========================
-# JWT CONFIG
+# JWT CONFIG (FIXED)
 # =========================
-SECRET_KEY = "REPLACE_WITH_RANDOM_64_CHAR_SECRET"
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")  # ✅ fallback for local
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -44,13 +45,13 @@ def create_access_token(data: dict):
 
 
 # =========================
-# AUTH SCHEME (FIXED)
+# AUTH SCHEME
 # =========================
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
 # =========================
-# GET CURRENT USER (FIXED)
+# GET CURRENT USER
 # =========================
 def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -61,7 +62,7 @@ def get_current_user(
 
         user_data = payload.get("sub")
 
-        # ✅ HANDLE BOTH TOKEN FORMATS
+        # ✅ HANDLE BOTH TOKEN STRUCTURES
         if isinstance(user_data, dict):
             user_id = user_data.get("sub")
         else:
