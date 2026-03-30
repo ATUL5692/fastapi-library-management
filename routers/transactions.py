@@ -1,9 +1,11 @@
-# This file is for book transactions part.
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from datetime import date, timedelta
 from typing import List
+from fastapi.responses import RedirectResponse
+import logging
+
 import schemas
 import models
 from database import get_db
@@ -11,46 +13,42 @@ from security import get_current_user, admin_only
 
 router = APIRouter()
 
+BORROW_DAYS = 7
 
-# BORROW BOOK (USER)
+logging.basicConfig(level=logging.INFO)
 
-@router.post("/borrow")
-def borrow_book(
+
+# =========================
+# HELPER: AUTO EXPIRE
+# =========================
+def expire_transactions(db: Session):
+    db.query(models.Transaction).filter(
+        models.Transaction.status == "issued",
+        models.Transaction.due_date < date.today()
+    ).update({"status": "expired"}, synchronize_session=False)
+
+
+# =========================
+# ISSUE BOOK (USER)
+# =========================
+@router.post("/issue")
+def issue_book(
     data: schemas.BorrowBook,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user)
 ):
-    user_id = current_user["user_id"]
+    user_id = current_user.id
 
-    # Check book exists
     book = db.query(models.Book).filter(models.Book.id == data.book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # Check already borrowed
-    existing = db.query(models.Transaction).filter(
-        models.Transaction.book_id == data.book_id,
-        models.Transaction.user_id == user_id,
-        models.Transaction.return_date == None
-    ).first()
-
-    if existing:
-        raise HTTPException(status_code=400, detail="Book already borrowed by user")
-
-    # Check availability
-    if book.available_copies <= 0:
-        raise HTTPException(status_code=400, detail="Book not available")
-
     try:
-        # Reduce stock
-        book.available_copies -= 1
-
-        # Create transaction
         transaction = models.Transaction(
             book_id=data.book_id,
             user_id=user_id,
             issue_date=date.today(),
-            due_date=date.today() + timedelta(days=7),
+            due_date=date.today() + timedelta(days=BORROW_DAYS),
             status="issued"
         )
 
@@ -58,87 +56,86 @@ def borrow_book(
         db.commit()
         db.refresh(transaction)
 
-        return {
-            "message": "Book borrowed successfully",
-            "transaction_id": transaction.id
-        }
+        logging.info(f"User {user_id} borrowed book {data.book_id}")
+
+        return {"message": f"Access granted for {BORROW_DAYS} days"}
+
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Already borrowed")
 
     except Exception:
         db.rollback()
         raise HTTPException(status_code=500, detail="Borrow failed")
 
 
-
-# RETURN BOOK (USER)
-
-@router.post("/return")
-def return_book(
-    data: schemas.BorrowBook,
+# =========================
+# READ BOOK (FIXED 🔥)
+# =========================
+@router.get("/read/{book_id}")
+def read_book(
+    book_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user)
 ):
-    user_id = current_user["user_id"]
+    user_id = current_user.id
 
+    # expire old transactions
+    expire_transactions(db)
+    db.commit()
+
+    # check access
     transaction = db.query(models.Transaction).filter(
-        models.Transaction.book_id == data.book_id,
+        models.Transaction.book_id == book_id,
         models.Transaction.user_id == user_id,
-        models.Transaction.return_date == None
+        models.Transaction.status == "issued"
     ).first()
 
     if not transaction:
-        raise HTTPException(status_code=404, detail="No active borrow record found")
+        raise HTTPException(
+            status_code=403,
+            detail="Access expired or book not issued"
+        )
 
-    try:
-        # Set return date
-        transaction.return_date = date.today()
+    # get book
+    book = db.query(models.Book).filter(models.Book.id == book_id).first()
 
-        # Fine calculation
-        delay = (transaction.return_date - transaction.due_date).days
-        fine = delay * 10 if delay > 0 else 0
+    if not book or not book.pdf_url:
+        raise HTTPException(status_code=404, detail="Book not found")
 
-        transaction.fine = fine
-        transaction.status = "returned"
+    # 🔥 convert to Google Viewer
+    viewer_url = f"https://docs.google.com/gview?url={book.pdf_url}&embedded=true"
 
-        # Increase stock (use relation)
-        book = transaction.book
-        book.available_copies += 1
-
-        db.commit()
-        db.refresh(transaction)
-
-        return {
-            "message": "Book returned successfully",
-            "fine": fine
-        }
-
-    except Exception:
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Return failed")
+    return RedirectResponse(viewer_url)
 
 
-
-# ISSUED BOOKS (ADMIN ONLY)
-
+# =========================
+# ISSUED BOOKS (ADMIN)
+# =========================
 @router.get("/issued", response_model=List[schemas.TransactionResponse])
 def get_issued_books(
     db: Session = Depends(get_db),
-    user: dict = Depends(admin_only)
+    user: models.User = Depends(admin_only)
 ):
+    expire_transactions(db)
+    db.commit()
+
     return db.query(models.Transaction).filter(
-        models.Transaction.return_date == None
+        models.Transaction.status == "issued"
     ).all()
 
 
-
-
-# OVERDUE BOOKS (ADMIN ONLY)
-
-@router.get("/overdue", response_model=List[schemas.TransactionResponse])
-def get_overdue_books(
+# =========================
+# EXPIRED BOOKS (ADMIN)
+# =========================
+@router.get("/expired", response_model=List[schemas.TransactionResponse])
+def get_expired_books(
     db: Session = Depends(get_db),
-    user: dict = Depends(admin_only)
+    user: models.User = Depends(admin_only)
 ):
+    expire_transactions(db)
+    db.commit()
+
     return db.query(models.Transaction).filter(
-        models.Transaction.return_date == None,
-        models.Transaction.due_date < date.today()
+        models.Transaction.status == "expired"
     ).all()

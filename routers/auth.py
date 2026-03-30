@@ -4,8 +4,6 @@ from security import verify_password
 import models, schemas, crud
 from database import get_db
 from security import create_access_token
-from fastapi.security import OAuth2PasswordRequestForm
-from security import create_access_token
 
 router = APIRouter()
 
@@ -35,22 +33,19 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-    db_user = crud.get_user_by_email(db, form_data.username)
+def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+
+    db_user = crud.get_user_by_email(db, user.email)
 
     if not db_user:
         raise HTTPException(status_code=400, detail="Invalid email")
 
-    if not verify_password(form_data.password, db_user.password):
+    if not verify_password(user.password, db_user.password):
         raise HTTPException(status_code=400, detail="Invalid password")
 
     token = create_access_token({
     "sub": str(db_user.id),
-    "role": db_user.role
-    })
+    "role": db_user.role})
 
     return {
         "access_token": token,

@@ -1,35 +1,25 @@
 # This file is for Book Analysis part
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import date
 from typing import List
 
 import models
 import schemas
 from database import get_db
-from security import get_current_user
+from security import get_current_user, admin_only
 
 router = APIRouter()
 
 
-
-# ADMIN CHECK
-
-def admin_only(user = Depends(get_current_user)):
-    if user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Admin only")
-    return user
-
-
-
+# =========================
 # MOST BORROWED BOOKS
-
+# =========================
 @router.get("/most-borrowed")
 def most_borrowed_books(
     db: Session = Depends(get_db),
-    user = Depends(admin_only)
+    user: models.User = Depends(admin_only)
 ):
     result = db.query(
         models.Transaction.book_id,
@@ -47,52 +37,38 @@ def most_borrowed_books(
     ]
 
 
-
+# =========================
 # ISSUED BOOKS
-
+# =========================
 @router.get("/issued", response_model=List[schemas.TransactionResponse])
 def issued_books(
     db: Session = Depends(get_db),
-    user = Depends(admin_only)
+    user: models.User = Depends(admin_only)
 ):
     return db.query(models.Transaction).filter(
-        models.Transaction.return_date == None
+        models.Transaction.status == "issued"
     ).all()
 
 
-
-# OVERDUE BOOKS
-
-@router.get("/overdue", response_model=List[schemas.TransactionResponse])
-def overdue_books(
-    db: Session = Depends(get_db),
-    user = Depends(admin_only)
-):
-    return db.query(models.Transaction).filter(
-        models.Transaction.return_date == None,
-        models.Transaction.due_date < date.today()
-    ).all()
-
-
-
-# TOTAL BOOKS (ALL USERS CAN SEE)
-
+# =========================
+# TOTAL BOOKS
+# =========================
 @router.get("/total-books")
 def total_books(
     db: Session = Depends(get_db),
-    user = Depends(get_current_user)
+    user: models.User = Depends(get_current_user)
 ):
     count = db.query(func.count(models.Book.id)).scalar()
     return {"total_books": count}
 
 
-
-# TOTAL USERS (ADMIN ONLY)
-
+# =========================
+# TOTAL USERS
+# =========================
 @router.get("/total-users")
 def total_users(
     db: Session = Depends(get_db),
-    user = Depends(admin_only)
+    user: models.User = Depends(admin_only)
 ):
     count = db.query(func.count(models.User.id)).scalar()
     return {"total_users": count}
