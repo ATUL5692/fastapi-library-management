@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from database import engine, SessionLocal
+from database import engine
 import models
 
 from routers import books, transactions, analytics, users, auth
@@ -25,29 +25,17 @@ app.add_middleware(
 
 
 # =========================
-# DATABASE INIT
-# =========================
-models.Base.metadata.create_all(bind=engine)
-
-
-# =========================
-# ⚠️ TEMP CLEANUP (REMOVE AFTER FIRST RUN)
+# DATABASE INIT (SAFE)
 # =========================
 @app.on_event("startup")
-def clear_users():
-    db = SessionLocal()
-    try:
-        db.query(models.User).delete()
-        db.commit()
-        print("🔥 USERS TABLE CLEARED")
-    finally:
-        db.close()
+def startup():
+    models.Base.metadata.create_all(bind=engine)
 
 
 # =========================
 # ROUTERS
 # =========================
-app.include_router(auth.router)  # already has /auth prefix inside
+app.include_router(auth.router)  # already has /auth
 app.include_router(users.router, prefix="/user", tags=["Users"])
 app.include_router(books.router, prefix="/books", tags=["Books"])
 app.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
