@@ -11,18 +11,31 @@ import models
 
 
 # =========================
-# PASSWORD HASHING (FINAL)
+# PASSWORD HASHING (DEBUG VERSION)
 # =========================
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str):
-    # bcrypt supports max 72 bytes → truncate safely
-    return pwd_context.hash(password[:72])
+    print("🔥 HASH FUNCTION CALLED")
+    print("➡️ Original Length:", len(password))
+
+    safe_password = password[:72]
+
+    print("➡️ Trimmed Length:", len(safe_password))
+
+    return pwd_context.hash(safe_password)
 
 
 def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password[:72], hashed_password)
+    print("🔥 VERIFY FUNCTION CALLED")
+    print("➡️ Input Length:", len(plain_password))
+
+    safe_password = plain_password[:72]
+
+    print("➡️ Trimmed Length:", len(safe_password))
+
+    return pwd_context.verify(safe_password, hashed_password)
 
 
 # =========================
