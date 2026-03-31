@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+import hashlib
 import os
 
 from database import get_db
@@ -17,11 +18,16 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str):
-    return pwd_context.hash(password[:72])
+    # Step 1: Normalize password length (fix bcrypt limit)
+    hashed_input = hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+    # Step 2: bcrypt hash
+    return pwd_context.hash(hashed_input)
 
 
 def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password[:72], hashed_password)
+    hashed_input = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
+    return pwd_context.verify(hashed_input, hashed_password)
 
 
 # =========================
@@ -45,9 +51,9 @@ def create_access_token(data: dict):
 
 
 # =========================
-# AUTH SCHEME (FIXED)
+# AUTH SCHEME (CLEAN)
 # =========================
-security = HTTPBearer(auto_error=False)
+security = HTTPBearer()
 
 
 # =========================
@@ -57,21 +63,12 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ):
-    if credentials is None:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
     token = credentials.credentials
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
-        user_data = payload.get("sub")
-
-        # HANDLE BOTH CASES (string OR dict)
-        if isinstance(user_data, dict):
-            user_id = user_data.get("sub")
-        else:
-            user_id = user_data
+        user_id = payload.get("sub")
 
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
