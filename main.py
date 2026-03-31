@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from database import engine
+from database import engine, SessionLocal
 import models
 
 from routers import books, transactions, analytics, users, auth
@@ -31,9 +31,23 @@ models.Base.metadata.create_all(bind=engine)
 
 
 # =========================
-# ROUTERS (FIXED PREFIX)
+# ⚠️ TEMP CLEANUP (REMOVE AFTER FIRST RUN)
 # =========================
-app.include_router(auth.router)  # ✅ removed duplicate prefix
+@app.on_event("startup")
+def clear_users():
+    db = SessionLocal()
+    try:
+        db.query(models.User).delete()
+        db.commit()
+        print("🔥 USERS TABLE CLEARED")
+    finally:
+        db.close()
+
+
+# =========================
+# ROUTERS
+# =========================
+app.include_router(auth.router)  # already has /auth prefix inside
 app.include_router(users.router, prefix="/user", tags=["Users"])
 app.include_router(books.router, prefix="/books", tags=["Books"])
 app.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
