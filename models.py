@@ -68,7 +68,7 @@ class Transaction(Base):
     issue_date = Column(Date, nullable=False)
     due_date = Column(Date, nullable=False)
 
-    status = Column(String(20), default="issued")  # issued / expired
+    status = Column(String(20), nullable=False, default="issued")  # issued / expired / returned
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -76,7 +76,8 @@ class Transaction(Base):
     book = relationship("Book", back_populates="transactions")
     user = relationship("User", back_populates="transactions")
 
-    # 🔥 IMPORTANT INDEX
+
     __table_args__ = (
         Index("idx_user_book_status", "user_id", "book_id", "status"),
+        UniqueConstraint("user_id", "book_id", "status", name="uq_user_book_active"),
     )

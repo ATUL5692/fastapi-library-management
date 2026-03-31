@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-import hashlib
 import os
 
 from database import get_db
@@ -12,22 +11,18 @@ import models
 
 
 # =========================
-# PASSWORD HASHING
+# PASSWORD HASHING (FINAL)
 # =========================
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str):
-    # Step 1: Normalize password length (fix bcrypt limit)
-    hashed_input = hashlib.sha256(password.encode("utf-8")).hexdigest()
-
-    # Step 2: bcrypt hash
-    return pwd_context.hash(hashed_input)
+    # bcrypt supports max 72 bytes → truncate safely
+    return pwd_context.hash(password[:72])
 
 
 def verify_password(plain_password: str, hashed_password: str):
-    hashed_input = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
-    return pwd_context.verify(hashed_input, hashed_password)
+    return pwd_context.verify(plain_password[:72], hashed_password)
 
 
 # =========================
@@ -51,7 +46,7 @@ def create_access_token(data: dict):
 
 
 # =========================
-# AUTH SCHEME (CLEAN)
+# AUTH SCHEME
 # =========================
 security = HTTPBearer()
 
@@ -67,7 +62,6 @@ def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
         user_id = payload.get("sub")
 
         if user_id is None:
