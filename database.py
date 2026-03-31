@@ -36,12 +36,20 @@ from sqlalchemy import create_engine
 import os
 
 # =========================
-# DATABASE URL FROM ENV
+# GET ENV DATABASE
 # =========================
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Fix for postgres:// issue
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+# =========================
+# LOCAL FALLBACK (IMPORTANT)
+# =========================
+if DATABASE_URL is None or DATABASE_URL == "":
+    DATABASE_URL = "mysql+pymysql://root:M%40ngo112@localhost/library"
+
+# =========================
+# FIX POSTGRES URL
+# =========================
+if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # =========================

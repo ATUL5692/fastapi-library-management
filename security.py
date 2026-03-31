@@ -2,7 +2,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 import os
 
@@ -25,9 +25,9 @@ def verify_password(plain_password: str, hashed_password: str):
 
 
 # =========================
-# JWT CONFIG (FIXED)
+# JWT CONFIG
 # =========================
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")  # ✅ fallback for local
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -45,24 +45,29 @@ def create_access_token(data: dict):
 
 
 # =========================
-# AUTH SCHEME
+# AUTH SCHEME (FIXED)
 # =========================
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+security = HTTPBearer(auto_error=False)
 
 
 # =========================
 # GET CURRENT USER
 # =========================
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ):
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    token = credentials.credentials
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
         user_data = payload.get("sub")
 
-        # ✅ HANDLE BOTH TOKEN STRUCTURES
+        # HANDLE BOTH CASES (string OR dict)
         if isinstance(user_data, dict):
             user_id = user_data.get("sub")
         else:

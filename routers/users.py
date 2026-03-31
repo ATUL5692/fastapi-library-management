@@ -16,11 +16,11 @@ from security import (
     hash_password
 )
 
-router = APIRouter()
+router = APIRouter(prefix="/user", tags=["Users"])
 
 
 # =========================
-# GET CURRENT USER (ME) ✅ FIXED
+# GET CURRENT USER (ME)
 # =========================
 @router.get("/me", response_model=schemas.UserResponse)
 def get_me(
@@ -30,14 +30,17 @@ def get_me(
 
 
 # =========================
-# GET USERS (ROLE-BASED)
+# GET USERS (ROLE-BASED) ✅ FIXED
 # =========================
 @router.get("/", response_model=List[schemas.UserResponse])
 def get_users(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    if current_user.role in ["admin", "super_admin"]:
+    # 🔥 normalize role (critical fix)
+    role = (current_user.role or "").lower().strip()
+
+    if role in ["admin", "super_admin"]:
         return crud.get_users(db)
 
     return [current_user]
@@ -156,7 +159,7 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.role == "super_admin":
+    if (user.role or "").lower() == "super_admin":
         raise HTTPException(status_code=400, detail="Cannot delete super admin")
 
     if current_user.id == user_id:
@@ -196,7 +199,7 @@ def make_admin(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.role == "super_admin":
+    if (user.role or "").lower() == "super_admin":
         raise HTTPException(status_code=400, detail="Already super admin")
 
     user.role = "admin"
