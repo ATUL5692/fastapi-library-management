@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 from datetime import date, timedelta
 from typing import List
 from fastapi.responses import RedirectResponse
-from urllib.parse import quote
 import logging
 
 import schemas
@@ -39,16 +38,13 @@ def issue_book(
 ):
     user_id = current_user.id
 
-    # expire first
     expire_transactions(db)
     db.commit()
 
-    # check book exists
     book = db.query(models.Book).filter(models.Book.id == data.book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # 🚨 prevent duplicate issue
     existing = db.query(models.Transaction).filter(
         models.Transaction.book_id == data.book_id,
         models.Transaction.user_id == user_id,
@@ -58,7 +54,6 @@ def issue_book(
     if existing:
         raise HTTPException(status_code=400, detail="Book already issued")
 
-    # create transaction
     transaction = models.Transaction(
         book_id=data.book_id,
         user_id=user_id,
@@ -73,7 +68,10 @@ def issue_book(
 
     logging.info(f"User {user_id} issued book {data.book_id}")
 
-    return {"message": f"Access granted for {BORROW_DAYS} days"}
+    return {
+        "message": f"Access granted for {BORROW_DAYS} days",
+        "book_id": data.book_id
+    }
 
 
 # =========================
@@ -103,7 +101,7 @@ def return_book(
 
 
 # =========================
-# READ BOOK
+# READ BOOK (FIXED CORE LOGIC)
 # =========================
 @router.get("/read/{book_id}")
 def read_book(
@@ -113,9 +111,11 @@ def read_book(
 ):
     user_id = current_user.id
 
+    # 1️⃣ expire outdated transactions
     expire_transactions(db)
     db.commit()
 
+    # 2️⃣ check access
     transaction = db.query(models.Transaction).filter(
         models.Transaction.book_id == book_id,
         models.Transaction.user_id == user_id,
@@ -125,18 +125,17 @@ def read_book(
     if not transaction:
         raise HTTPException(
             status_code=403,
-            detail="Access expired or book not issued"
+            detail="Access denied (not issued or expired)"
         )
 
+    # 3️⃣ get book
     book = db.query(models.Book).filter(models.Book.id == book_id).first()
 
     if not book or not book.pdf_url:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    encoded_url = quote(book.pdf_url, safe="")
-    viewer_url = f"https://docs.google.com/gview?url={encoded_url}&embedded=true"
-
-    return RedirectResponse(viewer_url)
+    # 4️⃣ REDIRECT (clean)
+    return RedirectResponse(url=book.pdf_url)
 
 
 # =========================
