@@ -26,7 +26,6 @@ class BookCreate(BaseModel):
     author: str
     isbn: str
     category: str
-    shelf_location: str
     pdf_url: str
 
 
@@ -36,7 +35,6 @@ class BookResponse(BaseModel):
     author: str
     isbn: str
     category: str
-    shelf_location: str
     pdf_url: str
 
     class Config:

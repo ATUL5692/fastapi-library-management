@@ -18,7 +18,6 @@ def create_book(db: Session, book: schemas.BookCreate):
         author=book.author,
         isbn=book.isbn,
         category=book.category,
-        shelf_location=book.shelf_location,
         pdf_url=book.pdf_url
     )
 
@@ -47,7 +46,6 @@ def update_book(db: Session, book_id: int, book: schemas.BookCreate):
     existing_book.author = book.author
     existing_book.category = book.category
     existing_book.isbn = book.isbn
-    existing_book.shelf_location = book.shelf_location
     existing_book.pdf_url = getattr(book, "pdf_url", None)
 
     db.commit()

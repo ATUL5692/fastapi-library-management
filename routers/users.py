@@ -30,14 +30,14 @@ def get_me(
 
 
 # =========================
-# GET USERS (ROLE-BASED) ✅ FIXED
+# GET USERS (ROLE-BASED) FIXED
 # =========================
 @router.get("/", response_model=List[schemas.UserResponse])
 def get_users(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # 🔥 normalize role (critical fix)
+    # normalize role (critical fix)
     role = (current_user.role or "").lower().strip()
 
     if role in ["admin", "super_admin"]:

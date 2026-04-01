@@ -15,7 +15,6 @@ class Book(Base):
     author = Column(String(200), nullable=False)
     isbn = Column(String(50), unique=True, nullable=False)
     category = Column(String(200), nullable=False)
-    shelf_location = Column(String(200), nullable=False)
     pdf_url = Column(String(255))
 
     created_at = Column(DateTime, default=datetime.utcnow)

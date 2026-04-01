@@ -50,7 +50,7 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
             detail="Invalid password"
         )
 
-    # 🔥 FIXED TOKEN STRUCTURE (IMPORTANT)
+    # FIXED TOKEN STRUCTURE (IMPORTANT)
     token = create_access_token({
         "sub": str(db_user.id),   # always string
         "role": db_user.role

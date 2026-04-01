@@ -17,23 +17,23 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str):
-    print("🔥 HASH FUNCTION CALLED")
-    print("➡️ Original Length:", len(password))
+    print("HASH FUNCTION CALLED")
+    print("Original Length:", len(password))
 
     safe_password = password[:72]
 
-    print("➡️ Trimmed Length:", len(safe_password))
+    print("Trimmed Length:", len(safe_password))
 
     return pwd_context.hash(safe_password)
 
 
 def verify_password(plain_password: str, hashed_password: str):
-    print("🔥 VERIFY FUNCTION CALLED")
-    print("➡️ Input Length:", len(plain_password))
+    print("VERIFY FUNCTION CALLED")
+    print("Input Length:", len(plain_password))
 
     safe_password = plain_password[:72]
 
-    print("➡️ Trimmed Length:", len(safe_password))
+    print("Trimmed Length:", len(safe_password))
 
     return pwd_context.verify(safe_password, hashed_password)
 
