@@ -76,6 +76,7 @@ class UserResponse(BaseModel):
     email: str
     country_code: str
     phone: str
+    role: str
 
     class Config:
         from_attributes = True

@@ -111,11 +111,11 @@ def read_book(
 ):
     user_id = current_user.id
 
-    # 1️⃣ expire outdated transactions
+    # expire outdated transactions
     expire_transactions(db)
     db.commit()
 
-    # 2️⃣ check access
+    # check access
     transaction = db.query(models.Transaction).filter(
         models.Transaction.book_id == book_id,
         models.Transaction.user_id == user_id,
@@ -128,13 +128,13 @@ def read_book(
             detail="Access denied (not issued or expired)"
         )
 
-    # 3️⃣ get book
+    # get book
     book = db.query(models.Book).filter(models.Book.id == book_id).first()
 
     if not book or not book.pdf_url:
         raise HTTPException(status_code=404, detail="Book not found")
 
-    # 4️⃣ REDIRECT (clean)
+    # REDIRECT (clean)
     return RedirectResponse(url=book.pdf_url)
 
 
